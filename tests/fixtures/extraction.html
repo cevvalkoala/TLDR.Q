@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Extraction fixture</title>
+  <style>
+    .row { display: flex; gap: 1rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <nav>Navigation text should be excluded.</nav>
+  <main>
+    <h1>Extraction fixture</h1>
+    <p>Adjacent inline text: <b>bold</b>suffix.</p>
+    <table>
+      <tr><th>First</th><th>Second</th></tr>
+      <tr><td>alpha</td><td>beta</td></tr>
+    </table>
+    <div class="row"><span>flex-one</span><span>flex-two</span></div>
+    <p class="hidden">Hidden text should be excluded.</p>
+    <p aria-hidden="true">Aria-hidden text should be excluded.</p>
+    <p>Final paragraph.</p>
+  </main>
+</body>
+</html>

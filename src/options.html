@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings | TLDR</title>
+  <link rel="stylesheet" href="options.css">
+  <script src="providers.js" defer></script>
+  <script src="options.js" defer></script>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <p class="eyebrow">TLDR / SETTINGS</p>
+      <h1>Make it yours.</h1>
+      <p>Choose where summaries are generated and how they sound.</p>
+    </header>
+
+    <section class="card" aria-labelledby="connection-title">
+      <div class="section-heading">
+        <div><p class="section-number">01 / CONNECTION</p><h2 id="connection-title">Model provider</h2></div>
+        <p>Connect to the service you want to use. Summaries send the captured page title and text to your selected provider.</p>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <label for="provider">Provider</label>
+          <select id="provider">
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="gemini">Gemini</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="openwebui">Open WebUI</option>
+            <option value="ollama">Ollama</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="base-url">Base URL</label>
+          <input id="base-url" type="url" spellcheck="false" autocomplete="url" aria-describedby="url-help url-warning">
+          <p id="url-help" class="help">Enter a specific API URL without wildcards. Remote services require HTTPS; HTTP is allowed only on loopback. Host permissions may cover all ports on a host.</p>
+          <p id="url-warning" class="warning" role="status" hidden></p>
+        </div>
+        <div class="field">
+          <label for="api-key">API key <span class="optional">if required</span></label>
+          <input id="api-key" type="password" autocomplete="off" spellcheck="false" aria-describedby="key-help">
+          <p id="key-help" class="help">Your key is stored unencrypted in your browser profile and is not synced. When a key is configured, it is sent to your selected provider for model discovery and summaries. Firefox requests optional permission to transmit authentication information when you save or load models; you can revoke it in about:addons under Permissions and data. Keyless Ollama does not need this permission.</p>
+          <button id="clear-key" type="button" class="secondary">Clear saved key</button>
+        </div>
+        <div class="field">
+          <label for="model">Model</label>
+          <div class="input-action">
+            <input id="model" type="text" list="model-list" autocomplete="off" spellcheck="false" aria-describedby="model-help">
+            <datalist id="model-list"></datalist>
+            <button id="load-models" type="button" class="secondary">Load models</button>
+          </div>
+          <p id="model-help" class="help">Enter a model name, or load suggestions from your provider.</p>
+        </div>
+      </div>
+      <p id="connection-status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card" aria-labelledby="prompt-title">
+      <div class="section-heading">
+        <div><p class="section-number">02 / INSTRUCTIONS</p><h2 id="prompt-title">Summary prompt</h2></div>
+        <p>Set the instructions sent with each page.</p>
+      </div>
+      <div class="field">
+        <label for="prompt">Prompt</label>
+        <textarea id="prompt" rows="8" aria-describedby="prompt-help"></textarea>
+        <p id="prompt-help" class="help">Use the default prompt or write your own.</p>
+      </div>
+      <div class="actions">
+        <button id="reset-prompt" type="button" class="secondary">Restore default prompt</button>
+        <button id="save" type="button" class="primary">Save settings</button>
+      </div>
+      <p id="save-status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card" aria-labelledby="shortcut-title">
+      <div class="section-heading">
+        <div><p class="section-number">03 / SHORTCUT</p><h2 id="shortcut-title">Keyboard shortcut</h2></div>
+        <p>Open TLDR without reaching for the toolbar.</p>
+      </div>
+      <div id="shortcut-firefox" hidden>
+        <div class="field">
+          <label for="shortcut">Shortcut</label>
+          <div class="input-action">
+            <input id="shortcut" type="text" spellcheck="false" placeholder="Alt+Shift+S" aria-describedby="shortcut-help">
+            <button id="save-shortcut" type="button" class="secondary">Update shortcut</button>
+            <button id="reset-shortcut" type="button" class="secondary">Reset</button>
+          </div>
+          <p id="shortcut-help" class="help">Use a browser shortcut such as Alt+Shift+S. Clear the field and update to remove it.</p>
+        </div>
+      </div>
+      <p id="shortcut-instructions" class="help" hidden>In Chrome, open <strong>chrome://extensions/shortcuts</strong> to change the TLDR shortcut. The default is Alt+Shift+S.</p>
+      <p id="shortcut-status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card danger-card" aria-labelledby="data-title">
+      <div class="section-heading">
+        <div><p class="section-number">04 / DATA</p><h2 id="data-title">Delete saved summaries</h2></div>
+        <p>Remove existing summaries and cancel pending requests. Your settings will remain.</p>
+      </div>
+      <button id="delete-all" type="button" class="danger">Delete existing summaries</button>
+      <p id="delete-status" class="status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "incognito": "not_allowed",
+  "name": "TLDR.Q",
+  "version": "1.0.0",
+  "minimum_chrome_version": "116",
+  "description": "Summarize the current page using your chosen AI provider.",
+  "icons": { "16": "src/icon-16.png", "32": "src/icon-32.png", "48": "src/icon-48.png", "64": "src/icon-64.png", "128": "src/icon-128.png" },
+  "permissions": ["activeTab", "scripting", "storage", "unlimitedStorage", "sidePanel"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "action": { "default_title": "Open TLDR.Q and summarize this page", "default_icon": { "16": "src/icon-16.png", "32": "src/icon-32.png", "48": "src/icon-48.png", "64": "src/icon-64.png", "128": "src/icon-128.png" } },
+  "side_panel": { "default_path": "src/sidebar.html" },
+  "options_ui": { "page": "src/options.html", "open_in_tab": true },
+  "commands": {
+    "summarize": { "suggested_key": { "default": "Alt+Shift+S" }, "description": "Open TLDR.Q and summarize the current page" }
+  },
+  "background": { "service_worker": "src/worker.js" }
+}
