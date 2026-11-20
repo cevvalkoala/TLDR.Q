@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "minimum_chrome_version": "116",
   "description": "Summarize the current page using your chosen AI provider.",
+  "homepage_url": "https://github.com/cevvalkoala/TLDR.Q",
   "icons": { "16": "src/icon-16.png", "32": "src/icon-32.png", "48": "src/icon-48.png", "64": "src/icon-64.png", "128": "src/icon-128.png" },
   "permissions": ["activeTab", "scripting", "storage", "unlimitedStorage", "sidePanel"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],

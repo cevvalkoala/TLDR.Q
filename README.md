@@ -76,9 +76,11 @@ Chrome 116 or later:
 
 The build creates `dist/firefox`, `dist/chrome`, `dist/tldrq-firefox.zip`, and `dist/tldrq-chrome.zip`. It copies files and does not sign either archive. `dist/firefox/manifest.json` can also be loaded as a temporary Firefox add-on. Building requires Windows PowerShell with .NET compression assemblies, not Node.js. To run automated tests when Node.js is available, run `node --test`.
 
+For a smaller Firefox submission ZIP, install 7-Zip and run `./build.ps1 -SevenZipPath 'C:\Program Files\7-Zip\7z.exe'` (adjust the path to your installation). This uses maximum standard ZIP Deflate compression and excludes the Chrome-only service worker. The source remains unminified for review.
+
 ## Mozilla Publication
 
-The Firefox manifest ID remains `tldrq@example.org`. Confirm that it is unique and intended to be permanent before the first AMO submission. Changing it later changes the extension's identity and affects access to its existing storage.
+The Firefox manifest ID is `ai-based-summaries@tldrq.local`. Mozilla checks that it is unique on first submission. The ID is not an email address and does not require ownership of a domain. Changing it later changes the extension's identity and affects access to its existing storage. The earlier development ID `tldrq@example.org` is a separate extension identity; existing saved data is not automatically transferred.
 
 The publisher must provide a privacy policy for the AMO listing that accurately describes data collection, transmission, storage, and provider handling, and must supply reviewer testing credentials through AMO's reviewer instructions or another appropriate private submission channel. Do not include API keys, credentials, or other secrets in the ZIP archive. This build targets desktop Firefox; Firefox for Android does not support its sidebar.
 

@@ -9,6 +9,7 @@ const root = path.join(__dirname, '..');
 
 test('Firefox manifest requires consent-capable desktop Firefox', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
+  assert.equal(manifest.browser_specific_settings.gecko.id, 'ai-based-summaries@tldrq.local');
   assert.equal(manifest.browser_specific_settings.gecko.strict_min_version, '140.0');
   assert.equal(manifest.browser_specific_settings.gecko_android, undefined);
 });
