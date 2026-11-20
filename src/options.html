@@ -84,14 +84,15 @@
         <div class="field">
           <label for="shortcut">Shortcut</label>
           <div class="input-action">
-            <input id="shortcut" type="text" spellcheck="false" placeholder="Alt+Shift+S" aria-describedby="shortcut-help">
+            <input id="shortcut" type="text" readonly placeholder="Focus and press keys" aria-describedby="shortcut-help">
             <button id="save-shortcut" type="button" class="secondary">Update shortcut</button>
+            <button id="remove-shortcut" type="button" class="secondary">Remove shortcut</button>
             <button id="reset-shortcut" type="button" class="secondary">Reset</button>
           </div>
-          <p id="shortcut-help" class="help">Use a browser shortcut such as Alt+Shift+S. Clear the field and update to remove it.</p>
+          <p id="shortcut-help" class="help">Focus the box and press a shortcut, then select Update. Tab moves focus and Escape stops recording. Some shortcuts are reserved by the browser or operating system.</p>
         </div>
       </div>
-      <p id="shortcut-instructions" class="help" hidden>In Chrome, open <strong>chrome://extensions/shortcuts</strong> to change the TLDR shortcut. The default is Alt+Shift+S.</p>
+      <p id="shortcut-instructions" class="help" hidden>In Chrome, open <strong>chrome://extensions/shortcuts</strong> to change the TLDR shortcut. The default is Alt+Shift+Q.</p>
       <p id="shortcut-status" class="status" role="status" aria-live="polite"></p>
     </section>
 

@@ -13,7 +13,7 @@
   "side_panel": { "default_path": "src/sidebar.html" },
   "options_ui": { "page": "src/options.html", "open_in_tab": true },
   "commands": {
-    "summarize": { "suggested_key": { "default": "Alt+Shift+S" }, "description": "Open TLDR.Q and summarize the current page" }
+    "summarize": { "suggested_key": { "default": "Alt+Shift+Q" }, "description": "Open TLDR.Q and summarize the current page" }
   },
   "background": { "service_worker": "src/worker.js" }
 }

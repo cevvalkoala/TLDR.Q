@@ -17,6 +17,7 @@ test('Firefox manifest requires consent-capable desktop Firefox', () => {
 test('browser manifests use supplied PNGs for extension and toolbar icons', () => {
   for (const file of ['manifest.json', 'manifest.chrome.json']) {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+    assert.equal(manifest.commands.summarize.suggested_key.default, 'Alt+Shift+Q');
     const iconSets = [manifest.icons, manifest.action.default_icon];
     if (manifest.sidebar_action) iconSets.push(manifest.sidebar_action.default_icon);
     for (const icons of iconSets) {

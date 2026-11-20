@@ -1,6 +1,8 @@
 # TLDR.Q
 
-A Firefox-first browser extension that summarizes the current page with a provider and model you choose. It also has a Chrome side-panel build. The extension has no runtime dependencies or build framework.
+A Firefox-first browser extension that summarizes the current page with a provider and model you choose. It also has a Chrome side-panel build. The extension has no runtime dependencies or build framework. It will be available on Firefox's addon site ( https://addons.mozilla.org/en-US/firefox/addon/tldr-q/ ) in a few days. Feel free to upload it to Chrome's extensions site. I don't have a developer account with Google.
+
+It is made with AI. It is yours to use and do whatever you like.
 
 ## Architecture
 
@@ -59,7 +61,7 @@ Open WebUI requires an API key enabled in its account settings and an endpoint e
 
 ## Shortcut
 
-The suggested shortcut is `Alt+Shift+S`. Browser, OS, keyboard layout, or other extension shortcuts may conflict; the browser can reject or leave it unassigned. Firefox offers shortcut editing and removal in Settings and its extension shortcut manager. Chrome does not offer the same programmatic update API; change or remove it at `chrome://extensions/shortcuts`. Browser shortcut restrictions apply. On some versions the browser may reject programmatic sidebar opening from a shortcut even when capture works; use the toolbar button or open the sidebar from the browser UI.
+The suggested shortcut is `Alt+Shift+Q`. Browser, OS, keyboard layout, or other extension shortcuts may conflict; the browser can reject or leave it unassigned. Firefox offers shortcut editing and removal in Settings and its extension shortcut manager. Chrome does not offer the same programmatic update API; change or remove it at `chrome://extensions/shortcuts`. Browser shortcut restrictions apply. On some versions the browser may reject programmatic sidebar opening from a shortcut even when capture works; use the toolbar button or open the sidebar from the browser UI.
 
 ## Install And Build
 

@@ -144,7 +144,8 @@ loadModels.addEventListener("click", () => {
       option.value = name;
       list.append(option);
     }
-    setStatus("connection-status", models.length ? `Loaded ${models.length} model${models.length === 1 ? "" : "s"}.` : "No models found. You can still enter a model name.");
+    if (models.length) model.value = models[0];
+    setStatus("connection-status", models.length ? `Loaded ${models.length} model${models.length === 1 ? "" : "s"}. First model selected; save settings to apply it.` : "No models found. You can still enter a model name.");
   }).catch((error) => {
     setStatus("connection-status", errorMessage(error), true);
   }).finally(() => setConnectionBusy(false));
@@ -181,7 +182,7 @@ async function loadShortcut() {
     return;
   }
   if (!api?.commands?.getAll || !api.commands.update || !api.commands.reset) {
-    setStatus("shortcut-status", "Shortcut editing is unavailable in this browser. The default is Alt+Shift+S.", true);
+    setStatus("shortcut-status", "Shortcut editing is unavailable in this browser. The default is Alt+Shift+Q.", true);
     return;
   }
   try {
@@ -196,30 +197,71 @@ async function loadShortcut() {
   }
 }
 
+byId("shortcut").addEventListener("focus", () => {
+  setStatus("shortcut-status", "Press the keys for your shortcut, then select Update.");
+});
+
+byId("shortcut").addEventListener("keydown", (event) => {
+  if (event.key === "Tab") return;
+  event.preventDefault();
+  if (event.key === "Escape") {
+    event.currentTarget.blur();
+    setStatus("shortcut-status", "Shortcut recording stopped.");
+    return;
+  }
+  if (event.repeat || event.isComposing || ["Control", "Alt", "Shift", "Meta", "AltGraph"].includes(event.key)) return;
+  const mac = /Mac/i.test(navigator.platform || navigator.userAgent);
+  const modifiers = [];
+  if (event.ctrlKey) modifiers.push(mac ? "MacCtrl" : "Ctrl");
+  if (event.metaKey && mac) modifiers.push("Command");
+  if (event.altKey) modifiers.push("Alt");
+  if (event.shiftKey) modifiers.push("Shift");
+  const names = { ",": "Comma", ".": "Period", " ": "Space", ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right", MediaTrackNext: "MediaNextTrack", MediaTrackPrevious: "MediaPrevTrack" };
+  const key = names[event.key] || (/^[a-z]$/i.test(event.key) ? event.key.toUpperCase() : event.key);
+  const media = ["MediaNextTrack", "MediaPrevTrack", "MediaPlayPause", "MediaStop"].includes(key);
+  const functionKey = /^F(?:[1-9]|1[0-9])$/.test(key);
+  const supported = /^[A-Z0-9]$/.test(key) || functionKey || media || ["Comma", "Period", "Home", "End", "PageUp", "PageDown", "Space", "Insert", "Delete", "Up", "Down", "Left", "Right"].includes(key);
+  const primary = modifiers.some(modifier => modifier !== "Shift");
+  if (!supported || (event.metaKey && !mac) || modifiers.length > 2 || (media && modifiers.length) || (!primary && !(functionKey && !modifiers.length) && !media)) {
+    setStatus("shortcut-status", "Unsupported shortcut. Use Ctrl, Alt, or Command with a supported key; try Firefox's extension shortcut manager if needed.", true);
+    return;
+  }
+  event.currentTarget.value = [...modifiers, key].join("+");
+  setStatus("shortcut-status", `Recorded ${event.currentTarget.value}. Select Update to apply it.`);
+});
+
 byId("save-shortcut").addEventListener("click", async () => {
   const value = byId("shortcut").value.trim();
   const button = byId("save-shortcut");
   button.disabled = true;
   byId("reset-shortcut").disabled = true;
+  byId("remove-shortcut").disabled = true;
   setStatus("shortcut-status", "Updating shortcut...");
   try {
     await api.commands.update({ name: shortcutName, shortcut: value });
     const commands = await api.commands.getAll();
     const updated = commands.find((item) => item.name === shortcutName)?.shortcut || "";
     byId("shortcut").value = updated;
-    setStatus("shortcut-status", !value ? "Shortcut removed." : updated ? "Shortcut updated." : "The browser did not assign this shortcut. It may be unavailable or already in use.", Boolean(value && !updated));
+    setStatus("shortcut-status", !value ? "Shortcut removed." : updated ? "Shortcut updated. Test it; browser or system shortcuts may take precedence." : "The browser did not assign this shortcut. It may be unavailable or already in use.", Boolean(value && !updated));
   } catch (error) {
     setStatus("shortcut-status", errorMessage(error), true);
   } finally {
     button.disabled = false;
     byId("reset-shortcut").disabled = false;
+    byId("remove-shortcut").disabled = false;
   }
+});
+
+byId("remove-shortcut").addEventListener("click", () => {
+  byId("shortcut").value = "";
+  byId("save-shortcut").click();
 });
 
 byId("reset-shortcut").addEventListener("click", async () => {
   const button = byId("reset-shortcut");
   button.disabled = true;
   byId("save-shortcut").disabled = true;
+  byId("remove-shortcut").disabled = true;
   setStatus("shortcut-status", "Resetting shortcut...");
   try {
     await api.commands.reset(shortcutName);
@@ -231,6 +273,7 @@ byId("reset-shortcut").addEventListener("click", async () => {
   } finally {
     button.disabled = false;
     byId("save-shortcut").disabled = false;
+    byId("remove-shortcut").disabled = false;
   }
 });
 
