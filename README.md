@@ -2,7 +2,9 @@
 
 A Firefox-first browser extension that summarizes the current page with a provider and model you choose. It also has a Chrome side-panel build. The extension has no runtime dependencies or build framework. It will be available on Firefox's addon site ( https://addons.mozilla.org/en-US/firefox/addon/tldr-q/ ) in a few days. Feel free to upload it to Chrome's extensions site. I don't have a developer account with Google.
 
-It is made with AI. It is yours to use and do whatever you like.
+## Disclosure
+This extension is made with AI. I tested it for some time on my own machine, but I don't claim to understand the whole code.
+I understand most people have reservations about using slopcoded applications. Still, feel free to analyze, use, debug, revise, or otherwise comment on the code. The code is yours, hoping it will save you some time.
 
 ## Architecture
 
@@ -75,22 +77,3 @@ Chrome 116 or later:
 
 1. Run `./build.ps1` in PowerShell from the repository root.
 2. Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `dist/chrome`. Pin the extension if its toolbar button is hidden.
-
-The build creates `dist/firefox`, `dist/chrome`, `dist/tldrq-firefox.zip`, and `dist/tldrq-chrome.zip`. It copies files and does not sign either archive. `dist/firefox/manifest.json` can also be loaded as a temporary Firefox add-on. Building requires Windows PowerShell with .NET compression assemblies, not Node.js. To run automated tests when Node.js is available, run `node --test`.
-
-For a smaller Firefox submission ZIP, install 7-Zip and run `./build.ps1 -SevenZipPath 'C:\Program Files\7-Zip\7z.exe'` (adjust the path to your installation). This uses maximum standard ZIP Deflate compression and excludes the Chrome-only service worker. The source remains unminified for review.
-
-## Mozilla Publication
-
-The Firefox manifest ID is `ai-based-summaries@tldrq.local`. Mozilla checks that it is unique on first submission. The ID is not an email address and does not require ownership of a domain. Changing it later changes the extension's identity and affects access to its existing storage. The earlier development ID `tldrq@example.org` is a separate extension identity; existing saved data is not automatically transferred.
-
-The publisher must provide a privacy policy for the AMO listing that accurately describes data collection, transmission, storage, and provider handling, and must supply reviewer testing credentials through AMO's reviewer instructions or another appropriate private submission channel. Do not include API keys, credentials, or other secrets in the ZIP archive. This build targets desktop Firefox; Firefox for Android does not support its sidebar.
-
-## Testing Checklist
-
-- Configure each provider, test model discovery and manual entry, and exercise a bad key, unavailable server, wrong API path, denied permission, and unsupported model.
-- Before Mozilla submission, test Firefox authentication-data consent for API-key use, denial and revocation before queued requests, keyless Ollama, remote HTTP rejection, and HTTP loopback access for local Ollama and Open WebUI. Verify Chrome does not invoke the Firefox consent API.
-- Invoke on a long article, a short article, an unmodified default prompt, and a custom prompt; verify the native sidebar, title, usage, elapsed time, and completion warnings. Check provider payloads and saved entries for absence of page URL metadata, including migration of old URL fields.
-- Queue several pages quickly, verify sequential processing, cancel an active or queued item, restart the browser, and delete one or all entries. Test deletion while capture is still pending.
-- Check private windows, restricted pages, content changes, frame limitations, table and flex layouts, hidden content, a page longer than the text cap, and a conflicting shortcut. Verify private tabs produce no writes or provider calls, wildcard API URLs including encoded forms are rejected, and install-time permissions do not grant all websites.
-- Test the actual Firefox and Chrome builds with the intended provider/server configuration. Browser lifecycle behavior, provider API versions, and server origin policies can differ.
