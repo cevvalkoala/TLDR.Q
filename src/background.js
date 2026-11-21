@@ -4,6 +4,7 @@ const ext = globalThis.browser ?? globalThis.chrome;
 const isFirefox = typeof globalThis.browser?.runtime?.getBrowserInfo === 'function';
 const MAX_CHARS = 60000;
 const TIMEOUT_MS = 120000;
+const OLLAMA_TIMEOUT_MS = 1800000;
 let mutation = Promise.resolve();
 let processing = false;
 let pendingKick = false;
@@ -180,6 +181,10 @@ async function processQueue() {
   if (processing) { pendingKick = true; return; }
   processing = true;
   pendingKick = false;
+  // Firefox can suspend an event page while fetch is pending, even with the sidebar open.
+  const heartbeat = isFirefox ? setInterval(() => {
+    try { Promise.resolve(ext.runtime.getPlatformInfo()).catch(() => {}); } catch (_) {}
+  }, 10000) : null;
   try {
     await recovered;
     while (true) {
@@ -197,7 +202,8 @@ async function processQueue() {
       const started = Date.now();
       const controller = activeController;
       let timedOut = false;
-      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, TIMEOUT_MS);
+      let timeoutMs = TIMEOUT_MS;
+      let timer;
       let result;
       let errorMessage;
       try {
@@ -205,6 +211,8 @@ async function processQueue() {
         if (controller.signal.aborted || cancelledIds.has(job.id) || generation !== deleteGeneration) throw new Error('Request canceled.');
         if (!config) throw new Error('Configure an AI provider and model in Settings first.');
         const validated = TLDRProviders.validateConfig(config);
+        timeoutMs = validated.provider === 'ollama' ? OLLAMA_TIMEOUT_MS : TIMEOUT_MS;
+        timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
         if (config.prompt === TLDRProviders.defaultPrompt && job.wordCount < 350) {
           result = { text: `This page contains approximately ${job.wordCount} words, fewer than 350. It was not summarized.`, usage: null };
         } else {
@@ -213,7 +221,7 @@ async function processQueue() {
           result = await TLDRProviders.summarize(validated, job, controller.signal, { beforeRequest: () => checkConsent(validated) });
         }
       } catch (error) {
-        errorMessage = timedOut ? 'The request timed out after 120 seconds.' : (error?.message || 'The request failed.');
+        errorMessage = timedOut ? `The request timed out after ${timeoutMs / 1000} seconds.` : (error?.message || 'The request failed.');
       } finally {
         clearTimeout(timer);
         cancelledIds.delete(job.id);
@@ -232,6 +240,7 @@ async function processQueue() {
       activeController = null;
     }
   } finally {
+    if (heartbeat !== null) clearInterval(heartbeat);
     processing = false;
     if (pendingKick) void processQueue();
   }

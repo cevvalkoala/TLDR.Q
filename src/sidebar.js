@@ -59,7 +59,45 @@ function render(entries) {
   }
 }
 
-ext.storage.local.get('entries').then(({ entries = [] }) => render(entries)).catch(error => { statusLine.textContent = error.message; });
+let revision = 0;
+let refreshTimer;
+let pending = false;
+let displayedEntries;
+
+function showEntries(entries) {
+  const visibleEntries = JSON.stringify(entries.map(entry => [
+    entry.id, entry.title, entry.status, entry.error, entry.summary, entry.truncated,
+    entry.warning, entry.usage?.input, entry.usage?.output, entry.usage?.total, entry.elapsedMs
+  ]));
+  const pendingCount = entries.filter(entry => entry.status === 'queued' || entry.status === 'running').length;
+  if (visibleEntries !== displayedEntries) {
+    render(entries);
+    displayedEntries = visibleEntries;
+  } else {
+    const status = pendingCount ? `${pendingCount} request${pendingCount === 1 ? '' : 's'} in progress or queued` : '';
+    if (statusLine.textContent !== status) statusLine.textContent = status;
+  }
+  pending = pendingCount > 0;
+  clearTimeout(refreshTimer);
+  if (pending) refreshTimer = setTimeout(refreshEntries, 5000);
+}
+
+async function refreshEntries() {
+  const readRevision = revision;
+  try {
+    const { entries = [] } = await ext.storage.local.get('entries');
+    if (readRevision === revision) showEntries(entries);
+  } catch (error) {
+    if (readRevision !== revision) return;
+    statusLine.textContent = error.message;
+    if (pending) refreshTimer = setTimeout(refreshEntries, 5000);
+  }
+}
+
 ext.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.entries) render(changes.entries.newValue || []);
+  if (area === 'local' && changes.entries) {
+    revision++;
+    showEntries(changes.entries.newValue || []);
+  }
 });
+void refreshEntries();

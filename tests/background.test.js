@@ -37,6 +37,8 @@ function makeBackground(options = {}) {
   const scriptCalls = [];
   const calls = [];
   const timers = new Map();
+  const intervals = new Map();
+  const heartbeats = [];
   const validations = [];
   const checks = [];
   const consent = { granted: options.granted !== false, supported: options.supported !== false };
@@ -48,7 +50,7 @@ function makeBackground(options = {}) {
   const ext = {
     action: { onClicked: on('click') },
     commands: { onCommand: on('command') },
-    runtime: { id: 'extension-id', onMessage: on('message'), onStartup: on('startup'), onInstalled: on('installed'), ...(options.firefox ? { getBrowserInfo() {} } : {}) },
+    runtime: { id: 'extension-id', onMessage: on('message'), onStartup: on('startup'), onInstalled: on('installed'), ...(options.firefox ? { getBrowserInfo() {}, getPlatformInfo() { heartbeats.push(true); return options.heartbeatError ? Promise.reject(new Error('unavailable')) : Promise.resolve({}); } } : {}) },
     permissions: {
       async getAll() { if (options.permissionError) throw new Error('unsupported'); return consent.supported ? { data_collection: consent.granted ? ['authenticationInfo'] : [] } : {}; },
       async contains(request) { checks.push(copy(request)); return consent.granted; }
@@ -101,7 +103,9 @@ function makeBackground(options = {}) {
     Date: FakeDate,
     crypto: { randomUUID: () => `id-${++nextId}` },
     setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
-    clearTimeout(id) { timers.delete(id); }
+    clearTimeout(id) { timers.delete(id); },
+    setInterval(fn, delay) { const id = ++nextTimer; intervals.set(id, { fn, delay }); return id; },
+    clearInterval(id) { intervals.delete(id); }
   }, { filename: 'background.js' });
 
   function send(message, sender = { id: 'extension-id' }) {
@@ -110,13 +114,13 @@ function makeBackground(options = {}) {
     return { accepted, reply: reply.promise };
   }
   return {
-    state, writes, pages, scriptCalls, calls, timers, validations, listeners, send, checks, consent,
+    state, writes, pages, scriptCalls, calls, timers, intervals, heartbeats, validations, listeners, send, checks, consent,
     click(id, details = {}) { listeners.click({ id, title: `tab-${id}`, url: `https://example.com/tab-${id}`, ...details }); },
     advance(ms) { now += ms; },
-    fireTimeout() {
+    fireTimeout(delay = 120000) {
       assert.equal(timers.size, 1);
       const [id, timer] = timers.entries().next().value;
-      assert.equal(timer.delay, 120000);
+      assert.equal(timer.delay, delay);
       timers.delete(id);
       timer.fn();
     }
@@ -347,6 +351,71 @@ test('timeouts and provider failures are persisted and do not stop the queue', a
   assert.equal(bg.state.entries[1].error, 'Provider unavailable');
   assert.equal('text' in bg.state.entries[1], false);
   assert.equal(bg.timers.size, 0);
+});
+
+test('slow Ollama requests can finish after two minutes and eventually time out', async () => {
+  const bg = makeBackground({ config: { provider: 'ollama', prompt: defaultPrompt } });
+  bg.pages.set(1, page('slow', 'text'));
+  bg.pages.set(2, page('timeout', 'text'));
+  bg.click(1);
+  await waitFor(() => bg.calls.length === 1, 'slow Ollama request');
+  assert.equal([...bg.timers.values()][0].delay, 1800000);
+  bg.advance(180000);
+  assert.equal(bg.calls[0].signal.aborted, false);
+  bg.calls[0].resolve({ text: 'slow summary', usage: null });
+  await waitFor(() => bg.state.entries[0]?.status === 'done', 'slow summary');
+  assert.equal(bg.state.entries[0].summary, 'slow summary');
+  assert.equal(bg.state.entries[0].elapsedMs, 180000);
+
+  bg.click(2);
+  await waitFor(() => bg.calls.length === 2, 'second Ollama request');
+  bg.advance(1800000);
+  bg.fireTimeout(1800000);
+  await waitFor(() => bg.state.entries[1]?.status === 'error', 'Ollama timeout');
+  assert.equal(bg.state.entries[1].error, 'The request timed out after 1800 seconds.');
+  assert.equal(bg.calls[1].signal.aborted, true);
+});
+
+test('Firefox keeps the background active during consecutive requests and stops when idle', async () => {
+  const bg = makeBackground({ firefox: true, heartbeatError: true, config: { provider: 'ollama', prompt: defaultPrompt } });
+  bg.pages.set(1, page('first', 'text'));
+  bg.pages.set(2, page('second', 'text'));
+  bg.click(1);
+  await waitFor(() => bg.calls.length === 1, 'first request');
+  bg.click(2);
+  await waitFor(() => bg.state.entries.length === 2, 'second queued request');
+  assert.equal(bg.intervals.size, 1);
+  const heartbeat = [...bg.intervals.values()][0];
+  assert.equal(heartbeat.delay, 10000);
+  heartbeat.fn();
+  heartbeat.fn();
+  assert.equal(bg.heartbeats.length, 2);
+  bg.calls[0].resolve({ text: 'first', usage: null });
+  await waitFor(() => bg.calls.length === 2, 'second request');
+  assert.equal(bg.intervals.size, 1);
+  heartbeat.fn();
+  bg.calls[1].resolve({ text: 'second', usage: null });
+  await waitFor(() => bg.state.entries[1]?.status === 'done' && bg.intervals.size === 0, 'queue idle');
+  assert.equal(bg.heartbeats.length, 3);
+
+  const chrome = makeBackground();
+  chrome.pages.set(1, page('page', 'text'));
+  chrome.click(1);
+  await waitFor(() => chrome.calls.length === 1, 'Chrome request');
+  assert.equal(chrome.intervals.size, 0);
+  chrome.calls[0].resolve({ text: 'done', usage: null });
+});
+
+test('Firefox stops the keepalive after a running request is canceled', async () => {
+  const bg = makeBackground({ firefox: true, config: { provider: 'ollama', prompt: defaultPrompt } });
+  bg.pages.set(1, page('page', 'text'));
+  bg.click(1);
+  await waitFor(() => bg.calls.length === 1, 'running request');
+  assert.equal(bg.intervals.size, 1);
+  await bg.send({ type: 'delete', id: bg.state.entries[0].id }).reply;
+  await waitFor(() => bg.intervals.size === 0, 'keepalive stopped');
+  assert.equal(bg.calls[0].signal.aborted, true);
+  assert.deepEqual(bg.state.entries, []);
 });
 
 test('capture and validation failures are persisted without provider calls', async () => {

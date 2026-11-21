@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "incognito": "not_allowed",
   "name": "TLDR.Q",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Summarize the current page using your chosen AI provider.",
   "homepage_url": "https://github.com/cevvalkoala/TLDR.Q",
   "icons": { "16": "src/icon-16.png", "32": "src/icon-32.png", "48": "src/icon-48.png", "64": "src/icon-64.png", "128": "src/icon-128.png" },
