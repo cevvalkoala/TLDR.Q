@@ -1,6 +1,6 @@
 # TLDR.Q
 
-A Firefox-first browser extension that summarizes the current page with a provider and model you choose. It also has a Chrome side-panel build. The extension has no runtime dependencies or build framework. It will be available on Firefox's addon site ( https://addons.mozilla.org/en-US/firefox/addon/tldr-q/ ) in a few days. Feel free to upload it to Chrome's extensions site. I don't have a developer account with Google.
+A Firefox-first browser extension that summarizes the current page with a provider and model you choose. It also has a Chrome side-panel build. The extension has no runtime dependencies or build framework. It is available on Firefox's addon site ( https://addons.mozilla.org/en-US/firefox/addon/tldr-q/ ). Feel free to upload it to Chrome's extensions site. I don't have a developer account with Google.
 
 ## Disclosure
 This extension is made with AI. I tested it for some time on my own machine, but I don't claim to understand the whole code.
