@@ -40,6 +40,7 @@ function makeSidebar(get) {
   return {
     getElement, timers,
     change(entries, area = 'local') { listener({ entries: { newValue: entries } }, area); },
+    changeOrder(order, area = 'local') { listener({ sidebarOrder: { newValue: order } }, area); },
     tick() {
       assert.equal(timers.size, 1);
       const [id, timer] = timers.entries().next().value;
@@ -53,6 +54,54 @@ function makeSidebar(get) {
 const running = [{ id: '1', title: 'Article', status: 'running' }];
 const done = [{ id: '1', title: 'Article', status: 'done', summary: 'Finished summary' }];
 const text = node => [node.textContent, ...node.children.flatMap(child => text(child))].join(' ');
+const titles = ui => ui.getElement('entries').children.map(article => article.children[0].children[0].textContent);
+
+test('sidebar defaults to newest at top and changes order without changing stored entries', async () => {
+  const entries = [
+    { id: '1', title: 'First', status: 'done', summary: 'First summary' },
+    { id: '2', title: 'Second', status: 'running' },
+    { id: '3', title: 'Third', status: 'queued' }
+  ];
+  const ui = makeSidebar(async () => ({ entries }));
+  await flush();
+  assert.deepEqual(titles(ui), ['Third', 'Second', 'First']);
+  ui.changeOrder('oldest-first');
+  assert.deepEqual(titles(ui), ['First', 'Second', 'Third']);
+  assert.deepEqual(entries.map(entry => entry.id), ['1', '2', '3']);
+  const appended = [...entries, { id: '4', title: 'Fourth', status: 'queued' }];
+  ui.change(appended);
+  assert.deepEqual(titles(ui), ['First', 'Second', 'Third', 'Fourth']);
+  ui.changeOrder('newest-first');
+  assert.deepEqual(titles(ui), ['Fourth', 'Third', 'Second', 'First']);
+});
+
+test('sidebar loads saved order and ignores unrelated storage areas', async () => {
+  const entries = [{ id: '1', title: 'First', status: 'done' }, { id: '2', title: 'Second', status: 'done' }];
+  const ui = makeSidebar(async () => ({ entries, sidebarOrder: 'oldest-first' }));
+  await flush();
+  assert.deepEqual(titles(ui), ['First', 'Second']);
+  ui.changeOrder('newest-first', 'sync');
+  assert.deepEqual(titles(ui), ['First', 'Second']);
+  ui.changeOrder(undefined);
+  assert.deepEqual(titles(ui), ['Second', 'First']);
+});
+
+test('initial entries and order reads cannot overwrite newer independent changes', async () => {
+  const initial = deferred();
+  const entries = [{ id: '1', title: 'First', status: 'done' }, { id: '2', title: 'Second', status: 'done' }];
+  const ui = makeSidebar(() => initial.promise);
+  ui.changeOrder('oldest-first');
+  initial.resolve({ entries, sidebarOrder: 'newest-first' });
+  await flush();
+  assert.deepEqual(titles(ui), ['First', 'Second']);
+
+  const otherInitial = deferred();
+  const other = makeSidebar(() => otherInitial.promise);
+  other.change(entries);
+  otherInitial.resolve({ entries: [], sidebarOrder: 'oldest-first' });
+  await flush();
+  assert.deepEqual(titles(other), ['First', 'Second']);
+});
 
 test('newer storage events cannot be overwritten by an older initial read', async () => {
   const initial = deferred();

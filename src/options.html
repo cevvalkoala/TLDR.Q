@@ -75,9 +75,24 @@
       <p id="save-status" class="status" role="status" aria-live="polite"></p>
     </section>
 
+    <section class="card" aria-labelledby="display-title">
+      <div class="section-heading">
+        <div><p class="section-number">03 / DISPLAY</p><h2 id="display-title">Sidebar order</h2></div>
+        <p>Choose where newly queued pages appear. Processing order does not change.</p>
+      </div>
+      <div class="field">
+        <label for="sidebar-order">Order of pages</label>
+        <select id="sidebar-order" disabled>
+          <option value="newest-first">Newest at top</option>
+          <option value="oldest-first">Newest at bottom</option>
+        </select>
+      </div>
+      <p id="sidebar-order-status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
     <section class="card" aria-labelledby="shortcut-title">
       <div class="section-heading">
-        <div><p class="section-number">03 / SHORTCUT</p><h2 id="shortcut-title">Keyboard shortcut</h2></div>
+        <div><p class="section-number">04 / SHORTCUT</p><h2 id="shortcut-title">Keyboard shortcut</h2></div>
         <p>Open TLDR without reaching for the toolbar.</p>
       </div>
       <div id="shortcut-firefox" hidden>
@@ -98,7 +113,7 @@
 
     <section class="card danger-card" aria-labelledby="data-title">
       <div class="section-heading">
-        <div><p class="section-number">04 / DATA</p><h2 id="data-title">Delete saved summaries</h2></div>
+        <div><p class="section-number">05 / DATA</p><h2 id="data-title">Delete saved summaries</h2></div>
         <p>Remove existing summaries and cancel pending requests. Your settings will remain.</p>
       </div>
       <button id="delete-all" type="button" class="danger">Delete existing summaries</button>

@@ -31,7 +31,7 @@ function render(entries) {
     container.append(element('p', 'No summaries yet. Choose a page and click the TLDR.Q toolbar button.', 'empty'));
     return;
   }
-  for (const entry of [...entries].reverse()) {
+  for (const entry of sidebarOrder === 'oldest-first' ? entries : [...entries].reverse()) {
     const article = element('article', null, 'entry');
     const heading = element('div', null, 'heading');
     heading.append(element('h2', entry.title || 'Untitled page'));
@@ -59,16 +59,20 @@ function render(entries) {
   }
 }
 
-let revision = 0;
+let entriesRevision = 0;
+let orderRevision = 0;
 let refreshTimer;
 let pending = false;
 let displayedEntries;
+let currentEntries = [];
+let sidebarOrder = 'newest-first';
 
 function showEntries(entries) {
-  const visibleEntries = JSON.stringify(entries.map(entry => [
+  currentEntries = entries;
+  const visibleEntries = JSON.stringify([sidebarOrder, entries.map(entry => [
     entry.id, entry.title, entry.status, entry.error, entry.summary, entry.truncated,
     entry.warning, entry.usage?.input, entry.usage?.output, entry.usage?.total, entry.elapsedMs
-  ]));
+  ])]);
   const pendingCount = entries.filter(entry => entry.status === 'queued' || entry.status === 'running').length;
   if (visibleEntries !== displayedEntries) {
     render(entries);
@@ -83,21 +87,27 @@ function showEntries(entries) {
 }
 
 async function refreshEntries() {
-  const readRevision = revision;
+  const readEntriesRevision = entriesRevision;
+  const readOrderRevision = orderRevision;
   try {
-    const { entries = [] } = await ext.storage.local.get('entries');
-    if (readRevision === revision) showEntries(entries);
+    const { entries = [], sidebarOrder: storedOrder } = await ext.storage.local.get(['entries', 'sidebarOrder']);
+    if (readOrderRevision === orderRevision) sidebarOrder = storedOrder === 'oldest-first' ? 'oldest-first' : 'newest-first';
+    if (readEntriesRevision === entriesRevision) showEntries(entries);
+    else if (readOrderRevision === orderRevision) showEntries(currentEntries);
   } catch (error) {
-    if (readRevision !== revision) return;
+    if (readEntriesRevision !== entriesRevision || readOrderRevision !== orderRevision) return;
     statusLine.textContent = error.message;
     if (pending) refreshTimer = setTimeout(refreshEntries, 5000);
   }
 }
 
 ext.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.entries) {
-    revision++;
-    showEntries(changes.entries.newValue || []);
+  if (area !== 'local' || (!changes.entries && !changes.sidebarOrder)) return;
+  if (changes.entries) entriesRevision++;
+  if (changes.sidebarOrder) {
+    orderRevision++;
+    sidebarOrder = changes.sidebarOrder.newValue === 'oldest-first' ? 'oldest-first' : 'newest-first';
   }
+  showEntries(changes.entries ? changes.entries.newValue || [] : currentEntries);
 });
 void refreshEntries();

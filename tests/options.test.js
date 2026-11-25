@@ -31,7 +31,13 @@ function makeOptions(options = {}) {
       async getAll() { return consent.supported ? { data_collection: consent.granted ? ['authenticationInfo'] : [] } : {}; },
       async contains(request) { checks.push(request); return consent.granted; }
     },
-    storage: { local: { async get() { return {}; }, async set(value) { writes.push(value); } } },
+    storage: { local: {
+      async get() { return options.stored || {}; },
+      async set(value) {
+        if (options.setError) throw new Error(options.setError);
+        writes.push(value);
+      }
+    } },
     commands: options.firefox ? {
       async getAll() { return [{ name: 'summarize', shortcut }]; },
       async update(update) {
@@ -69,6 +75,32 @@ async function readyOptions(options = {}) {
 }
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
+
+test('sidebar order defaults to newest first and saves independently of provider settings', async () => {
+  const ui = makeOptions();
+  await flush();
+  const order = ui.getElement('sidebar-order');
+  assert.equal(order.value, 'newest-first');
+  assert.equal(order.disabled, false);
+  order.value = 'oldest-first';
+  await order.change();
+  assert.deepEqual(JSON.parse(JSON.stringify(ui.writes)), [{ sidebarOrder: 'oldest-first' }]);
+  assert.equal(ui.requests.length, 0);
+  assert.match(ui.getElement('sidebar-order-status').textContent, /saved/i);
+});
+
+test('sidebar order loads persisted value and restores it when saving fails', async () => {
+  const ui = makeOptions({ stored: { sidebarOrder: 'oldest-first' }, setError: 'Storage unavailable' });
+  await flush();
+  const order = ui.getElement('sidebar-order');
+  assert.equal(order.value, 'oldest-first');
+  order.value = 'newest-first';
+  await order.change();
+  assert.equal(order.value, 'oldest-first');
+  assert.equal(order.disabled, false);
+  assert.match(ui.getElement('sidebar-order-status').textContent, /Storage unavailable/);
+  assert.equal(ui.writes.length, 0);
+});
 
 test('settings rejects wildcard URLs before requesting any permission', async () => {
   const ui = makeOptions();

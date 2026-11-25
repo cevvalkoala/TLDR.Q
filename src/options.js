@@ -10,9 +10,11 @@ const model = byId("model");
 const prompt = byId("prompt");
 const loadModels = byId("load-models");
 const save = byId("save");
+const sidebarOrder = byId("sidebar-order");
 const isFirefox = typeof globalThis.browser?.runtime?.getBrowserInfo === "function";
 const consentError = "Firefox authentication information permission is required to send an API key. Grant it by saving settings or loading models, or enable it in about:addons under Permissions and data.";
 let shortcutName;
+let savedSidebarOrder = "newest-first";
 
 function setStatus(id, message, isError = false) {
   const element = byId(id);
@@ -293,15 +295,34 @@ byId("delete-all").addEventListener("click", async () => {
   }
 });
 
+sidebarOrder.addEventListener("change", async () => {
+  sidebarOrder.disabled = true;
+  try {
+    const order = sidebarOrder.value === "oldest-first" ? "oldest-first" : "newest-first";
+    await api.storage.local.set({ sidebarOrder: order });
+    savedSidebarOrder = order;
+    sidebarOrder.value = order;
+    setStatus("sidebar-order-status", "Sidebar order saved.");
+  } catch (error) {
+    sidebarOrder.value = savedSidebarOrder;
+    setStatus("sidebar-order-status", `Could not save sidebar order: ${errorMessage(error)}`, true);
+  } finally {
+    sidebarOrder.disabled = false;
+  }
+});
+
 async function initialize() {
   setConnectionBusy(true);
   try {
-    const stored = await api.storage.local.get("config");
+    const stored = await api.storage.local.get(["config", "sidebarOrder"]);
     showConfig(stored.config);
+    savedSidebarOrder = stored.sidebarOrder === "oldest-first" ? "oldest-first" : "newest-first";
   } catch (error) {
     showConfig();
     setStatus("save-status", `Could not load settings: ${errorMessage(error)}`, true);
   } finally {
+    sidebarOrder.value = savedSidebarOrder;
+    sidebarOrder.disabled = false;
     setConnectionBusy(false);
   }
   loadShortcut();
