@@ -3,6 +3,21 @@ const ext = globalThis.browser ?? globalThis.chrome;
 const container = document.getElementById('entries');
 const statusLine = document.getElementById('status');
 
+// Chrome's worker can otherwise lose its panel state while the panel is open.
+if (ext.sidePanel && ext.runtime.connect) {
+  function connectPanel() {
+    const port = ext.runtime.connect({ name: 'sidebar' });
+    const heartbeat = setInterval(() => {
+      try { port.postMessage('open'); } catch (_) { /* The disconnect listener reconnects. */ }
+    }, 20000);
+    port.onDisconnect.addListener(() => {
+      clearInterval(heartbeat);
+      setTimeout(connectPanel, 1000);
+    });
+  }
+  connectPanel();
+}
+
 document.getElementById('settings').addEventListener('click', () => ext.runtime.openOptionsPage());
 
 function element(tag, text, className) {

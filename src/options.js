@@ -10,6 +10,7 @@ const model = byId("model");
 const prompt = byId("prompt");
 const loadModels = byId("load-models");
 const save = byId("save");
+const saveTop = byId("save-top");
 const sidebarOrder = byId("sidebar-order");
 const isFirefox = typeof globalThis.browser?.runtime?.getBrowserInfo === "function";
 const consentError = "Firefox authentication information permission is required to send an API key. Grant it by saving settings or loading models, or enable it in about:addons under Permissions and data.";
@@ -17,9 +18,11 @@ let shortcutName;
 let savedSidebarOrder = "newest-first";
 
 function setStatus(id, message, isError = false) {
-  const element = byId(id);
-  element.textContent = message;
-  element.classList.toggle("error", isError);
+  for (const statusId of id === "save-status" ? [id, "save-status-top"] : [id]) {
+    const element = byId(statusId);
+    element.textContent = message;
+    element.classList.toggle("error", isError);
+  }
 }
 
 function errorMessage(error) {
@@ -88,7 +91,7 @@ async function checkConsent(config) {
 }
 
 function setConnectionBusy(busy) {
-  for (const element of [provider, baseUrl, apiKey, model, prompt, loadModels, save, byId("reset-prompt"), byId("clear-key")]) {
+  for (const element of [provider, baseUrl, apiKey, model, prompt, loadModels, save, saveTop, byId("reset-prompt"), byId("clear-key")]) {
     element.disabled = busy;
   }
 }
@@ -153,7 +156,7 @@ loadModels.addEventListener("click", () => {
   }).finally(() => setConnectionBusy(false));
 });
 
-save.addEventListener("click", () => {
+function saveSettings() {
   let config;
   let permission;
   try {
@@ -175,7 +178,9 @@ save.addEventListener("click", () => {
   }).catch((error) => {
     setStatus("save-status", errorMessage(error), true);
   }).finally(() => setConnectionBusy(false));
-});
+}
+save.addEventListener("click", saveSettings);
+saveTop.addEventListener("click", saveSettings);
 
 async function loadShortcut() {
   const isFirefox = /Firefox\//.test(navigator.userAgent);

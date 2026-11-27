@@ -41,6 +41,7 @@ function makeBackground(options = {}) {
   const heartbeats = [];
   const validations = [];
   const checks = [];
+  const panelOpens = [];
   const consent = { granted: options.granted !== false, supported: options.supported !== false };
   let nextId = 0;
   let nextTimer = 0;
@@ -50,12 +51,15 @@ function makeBackground(options = {}) {
   const ext = {
     action: { onClicked: on('click') },
     commands: { onCommand: on('command') },
-    runtime: { id: 'extension-id', onMessage: on('message'), onStartup: on('startup'), onInstalled: on('installed'), ...(options.firefox ? { getBrowserInfo() {}, getPlatformInfo() { heartbeats.push(true); return options.heartbeatError ? Promise.reject(new Error('unavailable')) : Promise.resolve({}); } } : {}) },
+    runtime: { id: 'extension-id', getURL(path) { return `extension://${path}`; }, onConnect: on('connect'), onMessage: on('message'), onStartup: on('startup'), onInstalled: on('installed'), ...(options.firefox ? { getBrowserInfo() {}, getPlatformInfo() { heartbeats.push(true); return options.heartbeatError ? Promise.reject(new Error('unavailable')) : Promise.resolve({}); } } : {}) },
     permissions: {
       async getAll() { if (options.permissionError) throw new Error('unsupported'); return consent.supported ? { data_collection: consent.granted ? ['authenticationInfo'] : [] } : {}; },
       async contains(request) { checks.push(copy(request)); return consent.granted; }
     },
-    sidebarAction: { open() {} },
+    ...(options.chromePanel ? { sidePanel: { open(details) { panelOpens.push(copy(details)); } } } : {
+      sidebarAction: { open() { panelOpens.push('firefox'); } },
+      extension: { getViews(filter) { assert.equal(filter.type, 'sidebar'); return options.views || []; } }
+    }),
     tabs: { async query() { return options.query ? options.query() : []; } },
     scripting: {
       async executeScript(details) {
@@ -114,7 +118,7 @@ function makeBackground(options = {}) {
     return { accepted, reply: reply.promise };
   }
   return {
-    state, writes, pages, scriptCalls, calls, timers, intervals, heartbeats, validations, listeners, send, checks, consent,
+    state, writes, pages, scriptCalls, calls, timers, intervals, heartbeats, validations, listeners, send, checks, consent, panelOpens,
     click(id, details = {}) { listeners.click({ id, title: `tab-${id}`, url: `https://example.com/tab-${id}`, ...details }); },
     advance(ms) { now += ms; },
     fireTimeout(delay = 120000) {
@@ -126,6 +130,38 @@ function makeBackground(options = {}) {
     }
   };
 }
+
+test('Firefox reuses an existing sidebar while capturing the invoked tab', async () => {
+  const views = [{}];
+  const bg = makeBackground({ firefox: true, views });
+  bg.pages.set(1, page('toolbar', 'toolbar text'));
+  bg.pages.set(2, page('shortcut', 'shortcut text'));
+  bg.click(1, { windowId: 2 });
+  bg.listeners.command('summarize', { id: 2, windowId: 2 });
+  await waitFor(() => bg.state.entries.length === 2, 'both captures');
+  assert.deepEqual(bg.panelOpens, []);
+  assert.deepEqual(bg.scriptCalls.map(call => call.tabId), [1, 2]);
+  views.pop();
+  bg.click(1, { windowId: 2 });
+  assert.deepEqual(bg.panelOpens, ['firefox']);
+});
+
+test('Chrome reuses connected panels and opens again after the last disconnect', async () => {
+  const bg = makeBackground({ chromePanel: true });
+  const disconnects = [];
+  const port = { name: 'sidebar', sender: { id: 'extension-id', url: 'extension://src/sidebar.html' }, onDisconnect: { addListener(fn) { disconnects.push(fn); } } };
+  bg.pages.set(1, page('toolbar', 'toolbar text'));
+  bg.pages.set(2, page('shortcut', 'shortcut text'));
+  bg.listeners.connect(port);
+  bg.click(1, { windowId: 2 });
+  bg.listeners.command('summarize', { id: 2, windowId: 2 });
+  await waitFor(() => bg.state.entries.length === 2, 'both captures');
+  assert.deepEqual(bg.panelOpens, []);
+  assert.deepEqual(bg.scriptCalls.map(call => call.tabId), [1, 2]);
+  disconnects[0]();
+  bg.click(1, { windowId: 2 });
+  assert.deepEqual(bg.panelOpens, [{ windowId: 2 }]);
+});
 
 test('captures concurrent invocations immediately and processes persisted jobs sequentially', async () => {
   const bg = makeBackground();

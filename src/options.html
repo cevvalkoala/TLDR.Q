@@ -12,8 +12,12 @@
   <main class="page">
     <header class="page-header">
       <p class="eyebrow">TLDR / SETTINGS</p>
-      <h1>Make it yours.</h1>
+      <div class="header-actions">
+        <h1>Make it yours.</h1>
+        <button id="save-top" type="button" class="primary">Save settings</button>
+      </div>
       <p>Choose where summaries are generated and how they sound.</p>
+      <p id="save-status-top" class="status" role="status" aria-live="polite"></p>
     </header>
 
     <section class="card" aria-labelledby="connection-title">
@@ -70,9 +74,7 @@
       </div>
       <div class="actions">
         <button id="reset-prompt" type="button" class="secondary">Restore default prompt</button>
-        <button id="save" type="button" class="primary">Save settings</button>
       </div>
-      <p id="save-status" class="status" role="status" aria-live="polite"></p>
     </section>
 
     <section class="card" aria-labelledby="display-title">
@@ -119,6 +121,10 @@
       <button id="delete-all" type="button" class="danger">Delete existing summaries</button>
       <p id="delete-status" class="status" role="status" aria-live="polite"></p>
     </section>
+    <div class="save-footer">
+      <p id="save-status" class="status" role="status" aria-live="polite"></p>
+      <button id="save" type="button" class="primary">Save settings</button>
+    </div>
   </main>
 </body>
 </html>

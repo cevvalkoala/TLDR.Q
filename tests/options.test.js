@@ -130,6 +130,26 @@ test('settings requests the specific configured host synchronously', async () =>
   assert.equal(ui.writes[0].config.baseUrl, 'http://localhost:11434/api');
 });
 
+test('both save buttons request access synchronously and share status and busy state', async () => {
+  for (const button of ['save', 'save-top']) {
+    let resolvePermission;
+    const ui = await readyOptions({ key: '', request: () => new Promise(resolve => { resolvePermission = resolve; }) });
+    ui.getElement(button).click();
+    assert.equal(ui.requests.length, 1);
+    assert.equal(ui.getElement('save').disabled, true);
+    assert.equal(ui.getElement('save-top').disabled, true);
+    assert.equal(ui.getElement('save-status').textContent, 'Saving settings...');
+    assert.equal(ui.getElement('save-status-top').textContent, 'Saving settings...');
+    resolvePermission(true);
+    await flush();
+    assert.equal(ui.writes.length, 1);
+    assert.equal(ui.getElement('save').disabled, false);
+    assert.equal(ui.getElement('save-top').disabled, false);
+    assert.equal(ui.getElement('save-status').textContent, 'Settings saved.');
+    assert.equal(ui.getElement('save-status-top').textContent, 'Settings saved.');
+  }
+});
+
 test('Firefox requests host and authentication consent synchronously for save and discovery', async () => {
   const ui = await readyOptions({ firefox: true });
   ui.getElement('save').click();

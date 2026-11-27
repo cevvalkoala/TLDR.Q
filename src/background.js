@@ -137,11 +137,24 @@ async function capture(tab, generation = deleteGeneration) {
   }
 }
 
+const openPanels = new Set();
+if (ext.runtime.onConnect) ext.runtime.onConnect.addListener(port => {
+  if (port.name !== 'sidebar' || port.sender?.id !== ext.runtime.id || port.sender?.url !== ext.runtime.getURL('src/sidebar.html')) return;
+  openPanels.add(port);
+  port.onDisconnect.addListener(() => openPanels.delete(port));
+});
+
 function openPanel(tab) {
   try {
     let result;
-    if (ext.sidebarAction) result = ext.sidebarAction.open();
-    else if (ext.sidePanel && tab?.windowId != null) result = ext.sidePanel.open({ windowId: tab.windowId });
+    if (ext.sidebarAction) {
+      // Firefox's synchronous view lookup keeps the user gesture available for open().
+      try { if ((ext.extension?.getViews({ type: 'sidebar' }) || []).length) return; } catch (_) { /* Open normally if detection fails. */ }
+      result = ext.sidebarAction.open();
+    } else if (ext.sidePanel && tab?.windowId != null) {
+      if (openPanels.size) return;
+      result = ext.sidePanel.open({ windowId: tab.windowId });
+    }
     else return;
     Promise.resolve(result).catch(() => {});
   } catch (_) {

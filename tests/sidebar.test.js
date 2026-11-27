@@ -15,9 +15,10 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-function makeSidebar(get) {
+function makeSidebar(get, options = {}) {
   const elements = new Map();
   const timers = new Map();
+  const intervals = new Map();
   let listener, nextTimer = 0;
   function node() {
     return {
@@ -32,13 +33,15 @@ function makeSidebar(get) {
     return elements.get(id);
   }
   vm.runInNewContext(source, {
-    browser: { runtime: {}, storage: { local: { get }, onChanged: { addListener(fn) { listener = fn; } } } },
+    browser: { runtime: options.runtime || {}, ...(options.chromePanel ? { sidePanel: {} } : {}), storage: { local: { get }, onChanged: { addListener(fn) { listener = fn; } } } },
     document: { getElementById: getElement, createElement: node },
     setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
-    clearTimeout(id) { timers.delete(id); }
+    clearTimeout(id) { timers.delete(id); },
+    setInterval(fn, delay) { const id = ++nextTimer; intervals.set(id, { fn, delay }); return id; },
+    clearInterval(id) { intervals.delete(id); }
   });
   return {
-    getElement, timers,
+    getElement, timers, intervals,
     change(entries, area = 'local') { listener({ entries: { newValue: entries } }, area); },
     changeOrder(order, area = 'local') { listener({ sidebarOrder: { newValue: order } }, area); },
     tick() {
@@ -50,6 +53,31 @@ function makeSidebar(get) {
     }
   };
 }
+
+test('Chrome panel reconnects after worker disconnect and stops its previous heartbeat', async () => {
+  const ports = [];
+  const runtime = { connect(details) {
+    assert.equal(details.name, 'sidebar');
+    const port = { messages: [], postMessage(message) { this.messages.push(message); }, onDisconnect: { addListener(fn) { port.disconnect = fn; } } };
+    ports.push(port);
+    return port;
+  } };
+  const ui = makeSidebar(async () => ({ entries: [] }), { chromePanel: true, runtime });
+  await flush();
+  assert.equal(ports.length, 1);
+  const heartbeat = [...ui.intervals.values()][0];
+  assert.equal(heartbeat.delay, 20000);
+  heartbeat.fn();
+  assert.deepEqual(ports[0].messages, ['open']);
+  ports[0].disconnect();
+  assert.equal(ui.intervals.size, 0);
+  const [id, retry] = [...ui.timers.entries()][0];
+  assert.equal(retry.delay, 1000);
+  ui.timers.delete(id);
+  retry.fn();
+  assert.equal(ports.length, 2);
+  assert.equal(ui.intervals.size, 1);
+});
 
 const running = [{ id: '1', title: 'Article', status: 'running' }];
 const done = [{ id: '1', title: 'Article', status: 'done', summary: 'Finished summary' }];
